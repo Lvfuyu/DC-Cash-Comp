@@ -2,6 +2,20 @@
 
 import sys
 import csv
+import pandas as pd
+
+def load_feature_map(fmap_file_name, f_filter_name):
+	fmap = pd.read_csv(fmap_file_name)
+	fmap.index = fmap.fname
+	fmap = fmap.drop('fname', axis = 1)
+	fmap = fmap.to_dict()['feature_id']
+
+	feature_filter = pd.read_csv(f_filter_name)
+	feature_filter.index = feature_filter.feature
+	feature_filter = feature_filter.drop('feature', axis = 1)
+	feature_filter = feature_filter.to_dict()['fscore']
+
+	return fmap, feature_filter
 
 '''
 transform category feature to one-pot numberic feature 
@@ -75,7 +89,8 @@ def load_target(target_name):
 merge feature and target into libsvm format file
 '''
 
-def gen_feature_libsvm(feature_name, svm_name, feature2type, user2y, cat2level, file_type):
+def gen_feature_libsvm(feature_name, svm_name, feature2type, user2y, 
+					   cat2level, file_type, fmap, feature_filter):
 	
 	svm_file = open(svm_name, 'w')
 	feature_file = file(feature_name, 'r')
@@ -104,15 +119,20 @@ def gen_feature_libsvm(feature_name, svm_name, feature2type, user2y, cat2level, 
 			num_feature += 1
 			# temporally omitting category feature
 			f_id = 'x'+str(num_feature)
+
 			if feature2type[f_id] == 'category':
 				f = f.strip('\"')
 				index = int(f)
 				onepot = trans_cat2numb(cat2level, f_id, index)
-				for bit in onepot:
+				for loc, bit in enumerate(onepot):
+					if not feature_filter.has_key(fmap[f_id + '_' + str(loc)]):
+						continue
 					if bit == '1':
 						svm_file.write(' ' + str(num_write_feature) + ':' + bit)
 					num_write_feature += 1
 			else:
+				if not feature_filter.has_key(fmap[f_id]):
+					continue
 				if f != '0' and f != '0.0':
 					svm_file.write(' ' + str(num_write_feature) + ':' + f)
 				num_write_feature += 1
@@ -121,7 +141,7 @@ def gen_feature_libsvm(feature_name, svm_name, feature2type, user2y, cat2level, 
 
 	feature_file.close()
 	svm_file.close()
-	pass
+	return num_write_feature
 
 if __name__ == '__main__':
 	feature_type_name = sys.argv[1]
@@ -137,5 +157,7 @@ if __name__ == '__main__':
 
 	feature2type = load_feature_type(feature_type_name)
 	cat2level = load_cat_level(cat_level_name)
-	gen_feature_libsvm(feature_name, svm_name, feature2type, user2y, cat2level, file_type)
-
+	fmap, feature_filter = load_feature_map('./feature/fmap.csv','./feature/feature_importance.csv')
+	num_write_feature = gen_feature_libsvm(feature_name, svm_name, feature2type, user2y, 
+					   					   cat2level, file_type, fmap, feature_filter)
+	print 'Total feature is : ' + str(num_write_feature)

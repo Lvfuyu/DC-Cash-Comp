@@ -10,9 +10,9 @@ import sys
 # we can use this to do weight rescale, etc.
 # as a example, we try to set scale_pos_weight
 def fpreproc(dtrain, dtest, param):
-    label = dtrain.get_label()
-    ratio = float(np.sum(label == 0)) / np.sum(label==1)
-    param['scale_pos_weight'] = ratio
+    #label = dtrain.get_label()
+    #ratio = float(np.sum(label == 0)) / np.sum(label==1)
+    #param['scale_pos_weight'] = ratio
     return (dtrain, dtest, param)
 
 ### simple example
@@ -26,8 +26,8 @@ run_mode = sys.argv[6]
 
 # specify parameters via map, definition are same as c++ version
 label = dtrain.get_label()
-#ratio = float(np.sum(label == 0)) / np.sum(label==1)
-ratio = 1400.0/13458.0
+ratio = float(np.sum(label == 0)) / np.sum(label==1)
+#ratio = 1400.0/13458.0
 param = {
 		 'max_depth':depth,
 		 'eta':0.2, 
@@ -40,7 +40,7 @@ param = {
 		 'lambda':550,
 		 'scale_pos_weight':ratio,
 		 'subsample':0.7,
-		 'colsample_bytree':0.4,
+		 'colsample_bytree':1,
 		 'seed':2016
 		 }
 if run_mode == 'online':
